@@ -23,6 +23,7 @@
         // asteroids compatible with MVS 3.8 httpd  
         // by moshix and hot dog studios
         // all rights reserved
+        // 
         // v0.1 humbel beginnings
         // v0.2 polygons in 2D for fast effects
         // v0.3 spaceship shooting from vertex not hypotenuse
@@ -30,8 +31,8 @@
         // v0.5 splitting behavior
         // v0.6 movement of spacehisp behyond walls and reappearing
         
-       
-        const canvas = document.getElementById('gameCanvas');
+        const version = '0.6';// version to be shown 
+         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
 
         // Set canvas size
@@ -44,12 +45,12 @@
             y: canvas.height / 2,
             radius: 20,
             angle: 0,
-            rotation: 0,
+              rotation: 0,
             speed: 0,
             thrusting: false,
-            acceleration: 0.133,
+             acceleration: 0.133,
             maxSpeed: 12,
-            invulnerable: false,  // Add invulnerability state
+            invulnerable: false,  // invulnerability state
             invulnerableTime: 0   // Track invulnerability duration
         };
 
@@ -57,8 +58,8 @@
         const bullets = [];
         let score = 0;
         let gameOver = false;
-        let lives = 3;  // Add lives system
-        let isPaused = false;  // Add pause state
+        let lives = 3;  //  lives 
+        let isPaused = false;  // pause state
         let lastAsteroidSpawn = 0;  // Track time since last asteroid spawn
         const ASTEROID_SPAWN_INTERVAL = 5000;  // Spawn new asteroid every 5 seconds
 
@@ -167,9 +168,9 @@
 
         // Update game state
         function update() {
-            if (gameOver || isPaused) return;  // Add pause check
+            if (gameOver || isPaused) return;  //  pause check
 
-            // Add new asteroids over time
+            // more asterroids over time
             const currentTime = Date.now();
             if (currentTime - lastAsteroidSpawn > ASTEROID_SPAWN_INTERVAL) {
                 asteroids.push(createAsteroid());
@@ -270,7 +271,7 @@
                                 newAsteroid.speedX = Math.cos(subAngle) * (parentSpeed * speedBoost);
                                 newAsteroid.speedY = Math.sin(subAngle) * (parentSpeed * speedBoost);
                                 
-                                // Add some random rotation to make it more dramatic
+                                // random rotation to make it more dramatic
                                 newAsteroid.rotation = Math.random() * Math.PI * 2;
                                 newAsteroid.rotationSpeed = (Math.random() - 0.5) * 0.2;
                                 
@@ -352,7 +353,7 @@
             ctx.fillText('Space : Shoot', 900, 90);
             ctx.fillText('A : Accelerate', 900, 120);
             ctx.fillText('S : Decelerate', 900, 150);
-            ctx.fillText('P : Pause', 900, 180);  // Add pause control
+            ctx.fillText('P : Pause', 900, 180);  //  pause control
 
             // Draw copyright
             ctx.font = '8px Arial';
@@ -391,10 +392,10 @@
         // Update player controls
         function handleInput() {
             if (keys['p'] || keys['P']) {
-                isPaused = !isPaused;  // Toggle pause state
-                return;  // Skip other controls while paused
+                isPaused = !isPaused;  // Toggle pause stata
+                return;  // Skip other controls while paussed
             }
-            if (isPaused) return;  // Don't process other controls while paused
+            if (isPaused) return;  // Do not process  controls while paused
 
             if (keys['ArrowLeft']) {
                 player.angle -= 0.1;
