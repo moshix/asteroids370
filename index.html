@@ -62,6 +62,8 @@
         let isPaused = false;  // pause state
         let lastAsteroidSpawn = 0;  // Track time since last asteroid spawn
         const ASTEROID_SPAWN_INTERVAL = 5000;  // Spawn new asteroid every 5 seconds
+        const MAX_BULLETS = 3;  // Maximum number of bullets allowed at once
+        let lastBulletTime = 0;  // Add this with other game variables at the top
 
         // Create initial asteroids
         for (let i = 0; i < 5; i++) {
@@ -350,10 +352,10 @@
             ctx.textAlign = 'left';
             ctx.fillText('Controls:', 900, 30);
             ctx.fillText('< > : Rotate', 900, 60);
-            ctx.fillText('Space : Shoot', 900, 90);
+            ctx.fillText('Space : Shoot (max 3 bullets)', 900, 90);
             ctx.fillText('A : Accelerate', 900, 120);
             ctx.fillText('S : Decelerate', 900, 150);
-            ctx.fillText('P : Pause', 900, 180);  //  pause control
+            ctx.fillText('P : Pause', 900, 180);
 
             // Draw copyright
             ctx.font = '8px Arial';
@@ -392,10 +394,10 @@
         // Update player controls
         function handleInput() {
             if (keys['p'] || keys['P']) {
-                isPaused = !isPaused;  // Toggle pause stata
-                return;  // Skip other controls while paussed
+                isPaused = !isPaused;  // Toggle pause state
+                return;  // Skip other controls while paused
             }
-            if (isPaused) return;  // Do not process  controls while paused
+            if (isPaused) return;  // Don't process other controls while paused
 
             if (keys['ArrowLeft']) {
                 player.angle -= 0.1;
@@ -409,12 +411,16 @@
                 player.thrusting = false;
             }
             if (keys[' ']) {
-                // Shoot bullet straight up from the pointy corner, but travel 90 degrees left
-                bullets.push({
-                    x: player.x + Math.cos(player.angle) * 0 + Math.sin(player.angle) * player.radius,
-                    y: player.y + Math.sin(player.angle) * 0 - Math.cos(player.angle) * player.radius,
-                    angle: player.angle - Math.PI/2  // Subtract 90 degrees (π/2 radians)
-                });
+                const currentTime = Date.now();
+                if (currentTime - lastBulletTime > 410) {  // 100ms = 1/10 second
+                    // Shoot bullet straight up from the pointy corner, but travel 90 degrees left
+                    bullets.push({
+                        x: player.x + Math.cos(player.angle) * 0 + Math.sin(player.angle) * player.radius,
+                        y: player.y + Math.sin(player.angle) * 0 - Math.cos(player.angle) * player.radius,
+                        angle: player.angle - Math.PI/2  // Subtract 90 degrees (π/2 radians)
+                    });
+                    lastBulletTime = currentTime;
+                }
             }
             if (keys['a'] || keys['A']) {
                 // Accelerate in shooting direction
