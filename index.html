@@ -30,8 +30,10 @@
         // v0.4 asteroid rotation and speed boost
         // v0.5 splitting behavior
         // v0.6 movement of spacehisp behyond walls and reappearing
+        //0.7 bullet cooldown
+        // 0.8 asteroid splitting
         
-        const version = '0.6';// version to be shown 
+        const version = '0.8';// version to be shown 
          const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
 
@@ -72,7 +74,8 @@
 
         // Create asteroid
         function createAsteroid() {
-            const radius = Math.random() * 20 + 10;
+            // Create large asteroids (28px) for initial spawn
+            const radius = 30;
             let x, y;
             
             // Position asteroid outside the screen
@@ -250,32 +253,48 @@
 
                         // Create smaller asteroids if the original was large enough
                         if (asteroid.radius > 15) {
-                            // Number of sub-asteroids increases with size
-                            const numSubAsteroids = Math.floor(asteroid.radius / 10) + 1;
+                            // Determine the size of the new asteroids
+                            let newRadius;
+                            if (asteroid.radius > 28) {  // If it's a large asteroid (28px)
+                                newRadius = 20;  // Split into medium asteroids
+                            } else {  // If it's a medium asteroid (18px)
+                                newRadius = 15;  // Split into small asteroids
+                            }
+                            
+                            // Number of sub-asteroids (2 for large->medium, 3 for medium->small)
+                            const numSubAsteroids = asteroid.radius > 25 ? 2 : 3;
+                            
+                            // Calculate base values for sub-asteroids
+                            const baseAngle = Math.atan2(asteroid.speedY, asteroid.speedX);
+                            const spreadAngle = (Math.PI * 2) / numSubAsteroids;  // Evenly spread around circle
+                            const offsetDistance = asteroid.radius * 1.5;  // Offset by 150% of parent's radius
+                            const parentSpeed = Math.sqrt(asteroid.speedX * asteroid.speedX + asteroid.speedY * asteroid.speedY);
+                            const speedBoost = 1.3;  // Reduced from 2.5 to make sub-asteroids about 1/3 slower
+                            
                             for (let k = 0; k < numSubAsteroids; k++) {
-                                const newAsteroid = createAsteroid();
-                                
-                                // Calculate divergent angles for each sub-asteroid
-                                const baseAngle = Math.atan2(asteroid.speedY, asteroid.speedX);
-                                const spreadAngle = (Math.PI * 2) / numSubAsteroids;  // Evenly spread around circle
                                 const subAngle = baseAngle + (k * spreadAngle);
                                 
-                                // Position sub-asteroid slightly away from parent
-                                const offsetDistance = asteroid.radius * 1.5;  // Offset by 150% of parent's radius
-                                newAsteroid.x = asteroid.x + Math.cos(subAngle) * offsetDistance;
-                                newAsteroid.y = asteroid.y + Math.sin(subAngle) * offsetDistance;
+                                const newAsteroid = {
+                                    x: asteroid.x + Math.cos(subAngle) * offsetDistance,
+                                    y: asteroid.y + Math.sin(subAngle) * offsetDistance,
+                                    radius: newRadius,
+                                    speedX: Math.cos(subAngle) * (parentSpeed * speedBoost),
+                                    speedY: Math.sin(subAngle) * (parentSpeed * speedBoost),
+                                    rotation: Math.random() * Math.PI * 2,
+                                    rotationSpeed: (Math.random() - 0.5) * 0.2,
+                                    vertices: []
+                                };
                                 
-                                newAsteroid.radius = asteroid.radius / (numSubAsteroids + 1);
-                                
-                                // Give each sub-asteroid a dramatic speed boost in its direction
-                                const speedBoost = 2.5;  // Increase speed by 150%
-                                const parentSpeed = Math.sqrt(asteroid.speedX * asteroid.speedX + asteroid.speedY * asteroid.speedY);
-                                newAsteroid.speedX = Math.cos(subAngle) * (parentSpeed * speedBoost);
-                                newAsteroid.speedY = Math.sin(subAngle) * (parentSpeed * speedBoost);
-                                
-                                // random rotation to make it more dramatic
-                                newAsteroid.rotation = Math.random() * Math.PI * 2;
-                                newAsteroid.rotationSpeed = (Math.random() - 0.5) * 0.2;
+                                // Create irregular shape for sub-asteroid
+                                const numVertices = Math.floor(Math.random() * 5) + 8;
+                                for (let i = 0; i < numVertices; i++) {
+                                    const angle = (i / numVertices) * Math.PI * 2;
+                                    const vertexRadius = newAsteroid.radius * (0.7 + Math.random() * 0.6);
+                                    newAsteroid.vertices.push({
+                                        x: Math.cos(angle) * vertexRadius,
+                                        y: Math.sin(angle) * vertexRadius
+                                    });
+                                }
                                 
                                 asteroids.push(newAsteroid);
                             }
@@ -360,7 +379,7 @@
             // Draw copyright
             ctx.font = '8px Arial';
             ctx.textAlign = 'right';
-            ctx.fillText('(c) hot dog studios', 950, canvas.height - 10);
+            ctx.fillText(`v${version} (c) hot dog studios`, 950, canvas.height - 10);
 
             if (isPaused) {
                 ctx.fillStyle = '#fff';
