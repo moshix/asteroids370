@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Asteroids Game</title>
+    <style>
+        body {
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: #000;
+        }
+        canvas {
+            border: 1px solid #333;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Set canvas size
+        canvas.width = 1000;  // Increased from 800 to 1000 to accommodate legends
+        canvas.height = 600;
+
+        // Game objects
+        const player = {
+            x: canvas.width / 2,
+            y: canvas.height / 2,
+            radius: 20,
+            angle: 0,
+            rotation: 0,
+            speed: 0,
+            thrusting: false,
+            acceleration: 0.133,
+            maxSpeed: 12,
+            invulnerable: false,  // Add invulnerability state
+            invulnerableTime: 0   // Track invulnerability duration
+        };
+
+        const asteroids = [];
+        const bullets = [];
+        let score = 0;
+        let gameOver = false;
+        let lives = 3;  // Add lives system
+        let isPaused = false;  // Add pause state
+        let lastAsteroidSpawn = 0;  // Track time since last asteroid spawn
+        const ASTEROID_SPAWN_INTERVAL = 5000;  // Spawn new asteroid every 5 seconds
+
+        // Create initial asteroids
+        for (let i = 0; i < 5; i++) {
+            asteroids.push(createAsteroid());
+        }
+
+        // Create asteroid
+        function createAsteroid() {
+            const radius = Math.random() * 20 + 10;
+            let x, y;
+            
+            // Position asteroid outside the screen
+            if (Math.random() < 0.5) {
+                x = Math.random() < 0.5 ? -radius : canvas.width + radius;
+                y = Math.random() * canvas.height;
+            } else {
+                x = Math.random() * canvas.width;
+                y = Math.random() < 0.5 ? -radius : canvas.height + radius;
+            }
+
+            // Create fixed irregular shape for this asteroid
+            const numVertices = Math.floor(Math.random() * 5) + 8;
+            const vertices = [];
+            for (let i = 0; i < numVertices; i++) {
+                const angle = (i / numVertices) * Math.PI * 2;
+                const vertexRadius = radius * (0.7 + Math.random() * 0.6);
+                vertices.push({
+                    x: Math.cos(angle) * vertexRadius,
+                    y: Math.sin(angle) * vertexRadius
+                });
+            }
+
+            return {
+                x,
+                y,
+                radius,
+                speedX: (Math.random() - 0.5) * 0.8,
+                speedY: (Math.random() - 0.5) * 0.8,
+                vertices
+            };
+        }
+
+        // Draw player
+        function drawPlayer() {
+            ctx.save();
+            ctx.translate(player.x, player.y);
+            ctx.rotate(player.angle);
+            
+            // Draw ship
+            ctx.beginPath();
+            ctx.moveTo(0, -player.radius);
+            ctx.lineTo(player.radius, player.radius);
+            ctx.lineTo(-player.radius, player.radius);
+            ctx.closePath();
+            ctx.strokeStyle = player.invulnerable ? '#888' : '#fff';  // Gray when invulnerable
+            ctx.stroke();
+
+            // Draw thrust
+            if (player.thrusting) {
+                ctx.beginPath();
+                ctx.moveTo(-player.radius/2, player.radius);
+                ctx.lineTo(0, player.radius + 10);
+                ctx.lineTo(player.radius/2, player.radius);
+                ctx.strokeStyle = '#f00';
+                ctx.stroke();
+            }
+
+            ctx.restore();
+        }
+
+        // Draw asteroid
+        function drawAsteroid(asteroid) {
+            ctx.save();
+            ctx.translate(asteroid.x, asteroid.y);
+            
+            // Apply rotation if it exists
+            if (asteroid.rotation !== undefined) {
+                ctx.rotate(asteroid.rotation);
+                asteroid.rotation += asteroid.rotationSpeed;
+            }
+            
+            ctx.beginPath();
+            asteroid.vertices.forEach((vertex, i) => {
+                if (i === 0) {
+                    ctx.moveTo(vertex.x, vertex.y);
+                } else {
+                    ctx.lineTo(vertex.x, vertex.y);
+                }
+            });
+            ctx.closePath();
+            ctx.strokeStyle = '#fff';
+            ctx.stroke();
+
+            ctx.restore();
+        }
+
+        // Draw bullet
+        function drawBullet(bullet) {
+            ctx.beginPath();
+            ctx.arc(bullet.x, bullet.y, 2, 0, Math.PI * 2);
+            ctx.fillStyle = '#fff';
+            ctx.fill();
+        }
+
+        // Update game state
+        function update() {
+            if (gameOver || isPaused) return;  // Add pause check
+
+            // Add new asteroids over time
+            const currentTime = Date.now();
+            if (currentTime - lastAsteroidSpawn > ASTEROID_SPAWN_INTERVAL) {
+                asteroids.push(createAsteroid());
+                lastAsteroidSpawn = currentTime;
+            }
+
+            // Update player
+            if (player.thrusting) {
+                player.speed += player.acceleration;
+                player.speed = Math.min(player.speed, player.maxSpeed);
+            } else {
+                player.speed *= 0.99;
+            }
+
+            // Update position using speed components
+            player.x += (player.speedX || 0) + Math.cos(player.angle) * player.speed;
+            player.y += (player.speedY || 0) + Math.sin(player.angle) * player.speed;
+
+            // Wrap player around screen
+            player.x = (player.x + canvas.width) % canvas.width;
+            player.y = (player.y + canvas.height) % canvas.height;
+
+            // Update asteroids
+            asteroids.forEach(asteroid => {
+                asteroid.x += asteroid.speedX;
+                asteroid.y += asteroid.speedY;
+
+                // Wrap asteroids around screen
+                asteroid.x = (asteroid.x + canvas.width) % canvas.width;
+                asteroid.y = (asteroid.y + canvas.height) % canvas.height;
+            });
+
+            // Update bullets
+            for (let i = bullets.length - 1; i >= 0; i--) {
+                const bullet = bullets[i];
+                bullet.x += Math.cos(bullet.angle) * 7;
+                bullet.y += Math.sin(bullet.angle) * 7;
+
+                // Remove bullets that are off screen
+                if (bullet.x < 0 || bullet.x > canvas.width || 
+                    bullet.y < 0 || bullet.y > canvas.height) {
+                    bullets.splice(i, 1);
+                }
+            }
+
+            // Check collisions
+            checkCollisions();
+        }
+
+        // Check for collisions
+        function checkCollisions() {
+            // Bullet-Asteroid collisions
+            for (let i = bullets.length - 1; i >= 0; i--) {
+                const bullet = bullets[i];
+                for (let j = asteroids.length - 1; j >= 0; j--) {
+                    const asteroid = asteroids[j];
+                    
+                    // Check if bullet is inside any of the asteroid's vertices
+                    let isColliding = false;
+                    for (const vertex of asteroid.vertices) {
+                        const dx = bullet.x - (asteroid.x + vertex.x);
+                        const dy = bullet.y - (asteroid.y + vertex.y);
+                        const distance = Math.sqrt(dx * dx + dy * dy);
+                        if (distance < 5) { // 5 pixels collision radius for bullets
+                            isColliding = true;
+                            break;
+                        }
+                    }
+
+                    if (isColliding) {
+                        // Remove bullet and asteroid
+                        bullets.splice(i, 1);
+                        asteroids.splice(j, 1);
+                        score += 100;
+
+                        // Create smaller asteroids if the original was large enough
+                        if (asteroid.radius > 15) {
+                            // Number of sub-asteroids increases with size
+                            const numSubAsteroids = Math.floor(asteroid.radius / 10) + 1;
+                            for (let k = 0; k < numSubAsteroids; k++) {
+                                const newAsteroid = createAsteroid();
+                                
+                                // Calculate divergent angles for each sub-asteroid
+                                const baseAngle = Math.atan2(asteroid.speedY, asteroid.speedX);
+                                const spreadAngle = (Math.PI * 2) / numSubAsteroids;  // Evenly spread around circle
+                                const subAngle = baseAngle + (k * spreadAngle);
+                                
+                                // Position sub-asteroid slightly away from parent
+                                const offsetDistance = asteroid.radius * 1.5;  // Offset by 150% of parent's radius
+                                newAsteroid.x = asteroid.x + Math.cos(subAngle) * offsetDistance;
+                                newAsteroid.y = asteroid.y + Math.sin(subAngle) * offsetDistance;
+                                
+                                newAsteroid.radius = asteroid.radius / (numSubAsteroids + 1);
+                                
+                                // Give each sub-asteroid a dramatic speed boost in its direction
+                                const speedBoost = 2.5;  // Increase speed by 150%
+                                const parentSpeed = Math.sqrt(asteroid.speedX * asteroid.speedX + asteroid.speedY * asteroid.speedY);
+                                newAsteroid.speedX = Math.cos(subAngle) * (parentSpeed * speedBoost);
+                                newAsteroid.speedY = Math.sin(subAngle) * (parentSpeed * speedBoost);
+                                
+                                // Add some random rotation to make it more dramatic
+                                newAsteroid.rotation = Math.random() * Math.PI * 2;
+                                newAsteroid.rotationSpeed = (Math.random() - 0.5) * 0.2;
+                                
+                                asteroids.push(newAsteroid);
+                            }
+                        }
+                        break;
+                    }
+                }
+            }
+
+            // Player-Asteroid collisions
+            for (const asteroid of asteroids) {
+                // Skip collision check if player is invulnerable
+                if (player.invulnerable) continue;
+
+                // Check if player is inside any of the asteroid's vertices
+                let isColliding = false;
+                for (const vertex of asteroid.vertices) {
+                    const dx = player.x - (asteroid.x + vertex.x);
+                    const dy = player.y - (asteroid.y + vertex.y);
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    if (distance < player.radius) {
+                        isColliding = true;
+                        break;
+                    }
+                }
+
+                if (isColliding) {
+                    lives--;
+                    if (lives <= 0) {
+                        gameOver = true;
+                    } else {
+                        // Reset player position and make invulnerable
+                        player.x = canvas.width / 2;
+                        player.y = canvas.height / 2;
+                        player.speedX = 0;
+                        player.speedY = 0;
+                        player.speed = 0;
+                        player.invulnerable = true;
+                        player.invulnerableTime = Date.now();
+                    }
+                    break;
+                }
+            }
+
+            // Update invulnerability
+            if (player.invulnerable) {
+                const currentTime = Date.now();
+                if (currentTime - player.invulnerableTime > 3000) {  // 3 seconds invulnerability
+                    player.invulnerable = false;
+                }
+            }
+        }
+
+        // Draw game state
+        function draw() {
+            // Clear canvas
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw game objects
+            asteroids.forEach(drawAsteroid);
+            bullets.forEach(drawBullet);
+            drawPlayer();
+
+            // Draw score and lives
+            ctx.fillStyle = '#fff';
+            ctx.font = '12px Arial';
+            ctx.textAlign = 'left';
+            ctx.fillText(`Score: ${score}`, 20, 30);
+            ctx.fillText(`Lives: ${lives}`, 20, 50);
+
+            // Draw controls legend
+            ctx.font = '12px Arial';
+            ctx.textAlign = 'left';
+            ctx.fillText('Controls:', 900, 30);
+            ctx.fillText('< > : Rotate', 900, 60);
+            ctx.fillText('Space : Shoot', 900, 90);
+            ctx.fillText('A : Accelerate', 900, 120);
+            ctx.fillText('S : Decelerate', 900, 150);
+            ctx.fillText('P : Pause', 900, 180);  // Add pause control
+
+            // Draw copyright
+            ctx.font = '8px Arial';
+            ctx.textAlign = 'right';
+            ctx.fillText('(c) hot dog studios', 950, canvas.height - 10);
+
+            if (isPaused) {
+                ctx.fillStyle = '#fff';
+                ctx.font = '48px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('PAUSED', canvas.width/2, canvas.height/2);
+            }
+
+            if (gameOver) {
+                ctx.fillStyle = '#fff';
+                ctx.font = '48px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('GAME OVER', canvas.width/2, canvas.height/2);
+                ctx.font = '24px Arial';
+                ctx.fillText(`Final Score: ${score}`, canvas.width/2, canvas.height/2 + 40);
+            }
+        }
+
+        // Game loop
+        function gameLoop() {
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Handle keyboard input
+        const keys = {};
+        document.addEventListener('keydown', e => keys[e.key] = true);
+        document.addEventListener('keyup', e => keys[e.key] = false);
+
+        // Update player controls
+        function handleInput() {
+            if (keys['p'] || keys['P']) {
+                isPaused = !isPaused;  // Toggle pause state
+                return;  // Skip other controls while paused
+            }
+            if (isPaused) return;  // Don't process other controls while paused
+
+            if (keys['ArrowLeft']) {
+                player.angle -= 0.1;
+            }
+            if (keys['ArrowRight']) {
+                player.angle += 0.1;
+            }
+            if (keys['ArrowUp']) {
+                player.thrusting = true;
+            } else {
+                player.thrusting = false;
+            }
+            if (keys[' ']) {
+                // Shoot bullet straight up from the pointy corner, but travel 90 degrees left
+                bullets.push({
+                    x: player.x + Math.cos(player.angle) * 0 + Math.sin(player.angle) * player.radius,
+                    y: player.y + Math.sin(player.angle) * 0 - Math.cos(player.angle) * player.radius,
+                    angle: player.angle - Math.PI/2  // Subtract 90 degrees (π/2 radians)
+                });
+            }
+            if (keys['a'] || keys['A']) {
+                // Accelerate in shooting direction
+                const accelerationAngle = player.angle - Math.PI/2;  // 90 degrees left of pointing direction
+                player.speedX = (player.speedX || 0) + Math.cos(accelerationAngle) * player.acceleration;
+                player.speedY = (player.speedY || 0) + Math.sin(accelerationAngle) * player.acceleration;
+                
+                // Limit speed
+                const currentSpeed = Math.sqrt(player.speedX * player.speedX + player.speedY * player.speedY);
+                if (currentSpeed > player.maxSpeed) {
+                    const ratio = player.maxSpeed / currentSpeed;
+                    player.speedX *= ratio;
+                    player.speedY *= ratio;
+                }
+            }
+            if (keys['s'] || keys['S']) {
+                // Decelerate
+                player.speedX *= 0.983;
+                player.speedY *= 0.983;
+                
+                // Stop completely if speed is very small
+                if (Math.abs(player.speedX) < 0.01) player.speedX = 0;
+                if (Math.abs(player.speedY) < 0.01) player.speedY = 0;
+            }
+        }
+
+        // Start game
+        function startGame() {
+            gameLoop();
+            setInterval(handleInput, 1000/60);
+        }
+
+        startGame();
+    </script>
+</body>
+</html> 
