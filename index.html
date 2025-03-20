@@ -472,7 +472,7 @@
                 }
             }
             
-            // Update lives glowing effect
+            // glowing effect    
             if (livesGlowing) {
                 const currentTime = Date.now();
                 if (currentTime - livesGlowTime > 900) {  // 0.5 seconds glowing
@@ -481,7 +481,7 @@
             }
         }
         
-        // Helper function: Check if two polygons intersect (Separating Axis Theorem)
+        // Check if two polygons intersect (Separating Axis Theorem)
         function polygonsIntersect(polygon1, polygon2) {
             // Check if polygon1 has separating axis
             for (let i = 0; i < polygon1.length; i++) {
