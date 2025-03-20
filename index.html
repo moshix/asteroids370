@@ -65,7 +65,7 @@
         let lives = 3;  //  lives 
         let isPaused = false;  // pause state
         let lastAsteroidSpawn = 0;  // Track time since last asteroid spawn
-        const ASTEROID_SPAWN_INTERVAL = 5000;  // Spawn new asteroid every 5 seconds
+        const ASTEROID_SPAWN_INTERVAL = 12000;  // Spawn new asteroid every 12 seconds (increased from 5 seconds)
         const MAX_BULLETS = 3;  // Maximum number of bullets allowed at once
         let lastBulletTime = 0;  // Add this with other game variables at the top
         let lastTime = 0;  // Track the last time the game loop ran
@@ -76,7 +76,7 @@
         let lastRocketSoundTime = 0; // Track when we last played the sound
 
         // Create initial asteroids
-        for (let i = 0; i < 5; i++) {
+        for (let i = 0; i < 3; i++) {
             asteroids.push(createAsteroid());
         }
 
