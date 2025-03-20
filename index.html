@@ -32,8 +32,9 @@
         // v0.6 movement of spacehisp behyond walls and reappearing
         //0.7 bullet cooldown
         // 0.8 asteroid splitting
+        // 0.9 time-based animation
         
-        const version = '0.8';// version to be shown 
+        const version = '0.9';// version to be shown 
          const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
 
@@ -50,7 +51,7 @@
               rotation: 0,
             speed: 0,
             thrusting: false,
-             acceleration: 0.133,
+             acceleration: 0.05,
             maxSpeed: 12,
             invulnerable: false,  // invulnerability state
             invulnerableTime: 0   // Track invulnerability duration
@@ -66,6 +67,7 @@
         const ASTEROID_SPAWN_INTERVAL = 5000;  // Spawn new asteroid every 5 seconds
         const MAX_BULLETS = 3;  // Maximum number of bullets allowed at once
         let lastBulletTime = 0;  // Add this with other game variables at the top
+        let lastTime = 0;  // Track the last time the game loop ran
 
         // Create initial asteroids
         for (let i = 0; i < 5; i++) {
@@ -75,12 +77,12 @@
         // Create asteroid
         function createAsteroid() {
             // Create large asteroids (28px) for initial spawn
-            const radius = 30;
+               const radius = 30;
             let x, y;
             
             // Position asteroid outside the screen
             if (Math.random() < 0.5) {
-                x = Math.random() < 0.5 ? -radius : canvas.width + radius;
+                    x = Math.random() < 0.5 ? -radius : canvas.width + radius;
                 y = Math.random() * canvas.height;
             } else {
                 x = Math.random() * canvas.width;
@@ -88,8 +90,8 @@
             }
 
             // Create fixed irregular shape for this asteroid
-            const numVertices = Math.floor(Math.random() * 5) + 8;
-            const vertices = [];
+                 const numVertices = Math.floor(Math.random() * 5) + 8;
+                const vertices = [];
             for (let i = 0; i < numVertices; i++) {
                 const angle = (i / numVertices) * Math.PI * 2;
                 const vertexRadius = radius * (0.7 + Math.random() * 0.6);
@@ -102,7 +104,7 @@
             return {
                 x,
                 y,
-                radius,
+                  radius,
                 speedX: (Math.random() - 0.5) * 0.8,
                 speedY: (Math.random() - 0.5) * 0.8,
                 vertices
@@ -111,7 +113,7 @@
 
         // Draw player
         function drawPlayer() {
-            ctx.save();
+            ctx.save(); // save the context  
             ctx.translate(player.x, player.y);
             ctx.rotate(player.angle);
             
@@ -145,7 +147,7 @@
             // Apply rotation if it exists
             if (asteroid.rotation !== undefined) {
                 ctx.rotate(asteroid.rotation);
-                asteroid.rotation += asteroid.rotationSpeed;
+                // Rotation is now updated in the update function
             }
             
             ctx.beginPath();
@@ -172,7 +174,7 @@
         }
 
         // Update game state
-        function update() {
+        function update(deltaTime) {
             if (gameOver || isPaused) return;  //  pause check
 
             // more asterroids over time
@@ -184,15 +186,31 @@
 
             // Update player
             if (player.thrusting) {
-                player.speed += player.acceleration;
+                player.speed += player.acceleration * deltaTime * 60;
                 player.speed = Math.min(player.speed, player.maxSpeed);
             } else {
-                player.speed *= 0.99;
+                player.speed *= Math.pow(0.99, deltaTime * 60);
             }
 
             // Update position using speed components
-            player.x += (player.speedX || 0) + Math.cos(player.angle) * player.speed;
-            player.y += (player.speedY || 0) + Math.sin(player.angle) * player.speed;
+            player.x += ((player.speedX || 0) + Math.cos(player.angle) * player.speed) * deltaTime * 60;
+            player.y += ((player.speedY || 0) + Math.sin(player.angle) * player.speed) * deltaTime * 60;
+
+            // Apply absolute combined speed limit
+            const combinedSpeedX = (player.speedX || 0) + Math.cos(player.angle) * player.speed;
+            const combinedSpeedY = (player.speedY || 0) + Math.sin(player.angle) * player.speed;
+            const absoluteSpeed = Math.sqrt(combinedSpeedX * combinedSpeedX + combinedSpeedY * combinedSpeedY);
+            
+            // If absolute speed exceeds max speed, scale both regular speed and directional speed
+            const absoluteMaxSpeed = player.maxSpeed * 1.2; // Slightly higher than the base max speed
+            if (absoluteSpeed > absoluteMaxSpeed) {
+                const scaleFactor = absoluteMaxSpeed / absoluteSpeed;
+                // Scale the directional speed component
+                player.speed *= scaleFactor;
+                // Scale the momentum speed components
+                if (player.speedX) player.speedX *= scaleFactor;
+                if (player.speedY) player.speedY *= scaleFactor;
+            }
 
             // Wrap player around screen
             player.x = (player.x + canvas.width) % canvas.width;
@@ -200,8 +218,13 @@
 
             // Update asteroids
             asteroids.forEach(asteroid => {
-                asteroid.x += asteroid.speedX;
-                asteroid.y += asteroid.speedY;
+                asteroid.x += asteroid.speedX * deltaTime * 60;
+                asteroid.y += asteroid.speedY * deltaTime * 60;
+
+                // Apply rotation if it exists (in the draw function previously)
+                if (asteroid.rotation !== undefined) {
+                    asteroid.rotation += asteroid.rotationSpeed * deltaTime * 60;
+                }
 
                 // Wrap asteroids around screen
                 asteroid.x = (asteroid.x + canvas.width) % canvas.width;
@@ -211,8 +234,8 @@
             // Update bullets
             for (let i = bullets.length - 1; i >= 0; i--) {
                 const bullet = bullets[i];
-                bullet.x += Math.cos(bullet.angle) * 7;
-                bullet.y += Math.sin(bullet.angle) * 7;
+                bullet.x += Math.cos(bullet.angle) * 7 * deltaTime * 60;
+                bullet.y += Math.sin(bullet.angle) * 7 * deltaTime * 60;
 
                 // Remove bullets that are off screen
                 if (bullet.x < 0 || bullet.x > canvas.width || 
@@ -371,13 +394,13 @@
             ctx.textAlign = 'left';
             ctx.fillText('Controls:', 900, 30);
             ctx.fillText('< > : Rotate', 900, 60);
-            ctx.fillText('Space : Shoot (max 3 bullets)', 900, 90);
+            ctx.fillText('Space : Shoot', 900, 90);
             ctx.fillText('A : Accelerate', 900, 120);
             ctx.fillText('S : Decelerate', 900, 150);
             ctx.fillText('P : Pause', 900, 180);
 
             // Draw copyright
-            ctx.font = '8px Arial';
+            ctx.font = '10px Arial';
             ctx.textAlign = 'right';
             ctx.fillText(`v${version} (c) hot dog studios`, 950, canvas.height - 10);
 
@@ -399,30 +422,43 @@
         }
 
         // Game loop
-        function gameLoop() {
-            update();
+        function gameLoop(currentTime) {
+            // Calculate delta time in seconds (first frame delta = 0)
+            if (!lastTime) lastTime = currentTime;
+            const deltaTime = (currentTime - lastTime) / 1000; // Convert to seconds
+            lastTime = currentTime;
+            
+            // Cap deltaTime to prevent huge jumps if the game was in background or paused
+            const cappedDeltaTime = Math.min(deltaTime, 0.1);
+            
+            handleInput(cappedDeltaTime);
+            update(cappedDeltaTime);
             draw();
             requestAnimationFrame(gameLoop);
         }
 
         // Handle keyboard input
         const keys = {};
-        document.addEventListener('keydown', e => keys[e.key] = true);
+        document.addEventListener('keydown', e => {
+            keys[e.key] = true;
+            
+            // Handle pause key press only on keydown, not continuously
+            if ((e.key === 'p' || e.key === 'P') && !e.repeat) {
+                isPaused = !isPaused;
+            }
+        });
         document.addEventListener('keyup', e => keys[e.key] = false);
 
         // Update player controls
-        function handleInput() {
-            if (keys['p'] || keys['P']) {
-                isPaused = !isPaused;  // Toggle pause state
-                return;  // Skip other controls while paused
-            }
-            if (isPaused) return;  // Don't process other controls while paused
+        function handleInput(deltaTime) {
+            if (isPaused) return;  // Don't process controls while paused
 
+            // Handle key inputs for player
             if (keys['ArrowLeft']) {
-                player.angle -= 0.1;
+                player.angle -= 0.1 * deltaTime * 60; // Scale by deltaTime and normalize to 60fps
             }
             if (keys['ArrowRight']) {
-                player.angle += 0.1;
+                player.angle += 0.1 * deltaTime * 60;
             }
             if (keys['ArrowUp']) {
                 player.thrusting = true;
@@ -431,7 +467,7 @@
             }
             if (keys[' ']) {
                 const currentTime = Date.now();
-                if (currentTime - lastBulletTime > 410) {  // 100ms = 1/10 second
+                if (currentTime - lastBulletTime > 410) {  // 410ms cooldown
                     // Shoot bullet straight up from the pointy corner, but travel 90 degrees left
                     bullets.push({
                         x: player.x + Math.cos(player.angle) * 0 + Math.sin(player.angle) * player.radius,
@@ -444,8 +480,8 @@
             if (keys['a'] || keys['A']) {
                 // Accelerate in shooting direction
                 const accelerationAngle = player.angle - Math.PI/2;  // 90 degrees left of pointing direction
-                player.speedX = (player.speedX || 0) + Math.cos(accelerationAngle) * player.acceleration;
-                player.speedY = (player.speedY || 0) + Math.sin(accelerationAngle) * player.acceleration;
+                player.speedX = (player.speedX || 0) + Math.cos(accelerationAngle) * player.acceleration * deltaTime * 60;
+                player.speedY = (player.speedY || 0) + Math.sin(accelerationAngle) * player.acceleration * deltaTime * 60;
                 
                 // Limit speed
                 const currentSpeed = Math.sqrt(player.speedX * player.speedX + player.speedY * player.speedY);
@@ -457,8 +493,8 @@
             }
             if (keys['s'] || keys['S']) {
                 // Decelerate
-                player.speedX *= 0.983;
-                player.speedY *= 0.983;
+                player.speedX *= Math.pow(0.983, deltaTime * 60);
+                player.speedY *= Math.pow(0.983, deltaTime * 60);
                 
                 // Stop completely if speed is very small
                 if (Math.abs(player.speedX) < 0.01) player.speedX = 0;
@@ -468,8 +504,8 @@
 
         // Start game
         function startGame() {
-            gameLoop();
-            setInterval(handleInput, 1000/60);
+            lastTime = 0;
+            requestAnimationFrame(gameLoop);
         }
 
         startGame();
