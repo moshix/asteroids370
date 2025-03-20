@@ -33,8 +33,9 @@
         //0.7 bullet cooldown
         // 0.8 asteroid splitting
         // 0.9 time-based animation
+        // 1.0 rocket sound and cooldown 
         
-        const version = '0.9';// version to be shown 
+        const version = '1.0';// version to be shown 
          const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
 
@@ -68,6 +69,11 @@
         const MAX_BULLETS = 3;  // Maximum number of bullets allowed at once
         let lastBulletTime = 0;  // Add this with other game variables at the top
         let lastTime = 0;  // Track the last time the game loop ran
+
+        // Load audio
+        const rocketSound = new Audio('rocket.mp3');
+        rocketSound.loop = false; // Don't loop the sound
+        let lastRocketSoundTime = 0; // Track when we last played the sound
 
         // Create initial asteroids
         for (let i = 0; i < 5; i++) {
@@ -489,6 +495,14 @@
                     const ratio = player.maxSpeed / currentSpeed;
                     player.speedX *= ratio;
                     player.speedY *= ratio;
+                }
+                
+                // Play rocket sound if enough time has passed since last play
+                const currentTime = Date.now();
+                if (currentTime - lastRocketSoundTime > 1000) { // Wait at least 1 second between plays
+                    rocketSound.currentTime = 0;
+                    rocketSound.play().catch(e => console.log("Audio play error:", e));
+                    lastRocketSoundTime = currentTime;
                 }
             }
             if (keys['s'] || keys['S']) {
