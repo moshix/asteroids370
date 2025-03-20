@@ -41,8 +41,8 @@
         const ctx = canvas.getContext('2d');
 
         // Set canvas size
-        canvas.width = 1024;  // Changed from 1000 to 1024
-        canvas.height = 576;  // Changed from 600 to 576
+        canvas.width = 1024;   
+        canvas.height = 576;  
 
         // Game objects
         const player = {
@@ -260,17 +260,50 @@
             // Bullet-Asteroid collisions
             for (let i = bullets.length - 1; i >= 0; i--) {
                 const bullet = bullets[i];
+                
                 for (let j = asteroids.length - 1; j >= 0; j--) {
                     const asteroid = asteroids[j];
                     
-                    // Calculate distance from bullet to asteroid center
+                    // Calculate distance from bullet to asteroid center (quick pre-check)
                     const dx = bullet.x - asteroid.x;
                     const dy = bullet.y - asteroid.y;
-                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    const distanceSquared = dx * dx + dy * dy;
                     
-                    // Check if bullet is inside the asteroid (using simplified circular collision)
-                    // We use asteroid.radius * 0.8 as an approximation of the average asteroid size
-                    if (distance < asteroid.radius * 0.8) {
+                    // Early rejection: if bullet is definitely too far from asteroid center
+                    if (distanceSquared > asteroid.radius * asteroid.radius * 1.2) {
+                        continue;
+                    }
+                    
+                    // More accurate check: ray-cast to determine if bullet is inside asteroid polygon
+                    let inside = false;
+                    
+                    // First, transform bullet position to the asteroid's local space accounting for rotation
+                    let localBulletX = bullet.x - asteroid.x;
+                    let localBulletY = bullet.y - asteroid.y;
+                    
+                    // Apply inverse rotation if asteroid has rotation
+                    if (asteroid.rotation !== undefined) {
+                        const cos = Math.cos(-asteroid.rotation);
+                        const sin = Math.sin(-asteroid.rotation);
+                        const rotatedX = localBulletX * cos - localBulletY * sin;
+                        const rotatedY = localBulletX * sin + localBulletY * cos;
+                        localBulletX = rotatedX;
+                        localBulletY = rotatedY;
+                    }
+                    
+                    // Ray-casting algorithm to determine if point is inside polygon
+                    for (let k = 0, l = asteroid.vertices.length; k < l; k++) {
+                        const v1 = asteroid.vertices[k];
+                        const v2 = asteroid.vertices[(k + 1) % l];
+                        
+                        // Ray-cast using local coordinates
+                        if (((v1.y > localBulletY) !== (v2.y > localBulletY)) && 
+                            (localBulletX < (v2.x - v1.x) * (localBulletY - v1.y) / (v2.y - v1.y) + v1.x)) {
+                            inside = !inside;
+                        }
+                    }
+                    
+                    if (inside) {
                         // Remove bullet and asteroid
                         bullets.splice(i, 1);
                         asteroids.splice(j, 1);
@@ -330,32 +363,76 @@
             }
 
             // Player-Asteroid collisions
-            for (const asteroid of asteroids) {
-                // Skip collision check if player is invulnerable
-                if (player.invulnerable) continue;
-
-                // Calculate distance from player to asteroid center
-                const dx = player.x - asteroid.x;
-                const dy = player.y - asteroid.y;
-                const distance = Math.sqrt(dx * dx + dy * dy);
+            if (!player.invulnerable) {
+                // Construct an accurate player triangle for collision testing
+                const playerVertices = [];
+                // Add the nose of the ship
+                playerVertices.push({
+                    x: player.x + Math.cos(player.angle) * -player.radius,
+                    y: player.y + Math.sin(player.angle) * -player.radius
+                });
+                // Add the right corner
+                playerVertices.push({
+                    x: player.x + Math.cos(player.angle + 2.09) * player.radius,
+                    y: player.y + Math.sin(player.angle + 2.09) * player.radius
+                });
+                // Add the left corner
+                playerVertices.push({
+                    x: player.x + Math.cos(player.angle + 4.19) * player.radius,
+                    y: player.y + Math.sin(player.angle + 4.19) * player.radius
+                });
                 
-                // Check if player is inside the asteroid (using the sum of their radii)
-                // We reduce asteroid size slightly (0.7) to match visual appearance
-                if (distance < player.radius + asteroid.radius * 0.7) {
-                    lives--;
-                    if (lives <= 0) {
-                        gameOver = true;
-                    } else {
-                        // Reset player position and make invulnerable
-                        player.x = canvas.width / 2;
-                        player.y = canvas.height / 2;
-                        player.speedX = 0;
-                        player.speedY = 0;
-                        player.speed = 0;
-                        player.invulnerable = true;
-                        player.invulnerableTime = Date.now();
+                for (let j = asteroids.length - 1; j >= 0; j--) {
+                    const asteroid = asteroids[j];
+                    
+                    // Quick distance check first (optimization)
+                    const dx = player.x - asteroid.x;
+                    const dy = player.y - asteroid.y;
+                    const distanceSquared = dx * dx + dy * dy;
+                    
+                    // Skip detailed collision if definitely too far
+                    const safetyMargin = 1.5; // Increased margin to account for irregular shapes
+                    if (distanceSquared > (player.radius + asteroid.radius) * (player.radius + asteroid.radius) * safetyMargin) {
+                        continue;
                     }
-                    break;
+                    
+                    // Create world-space vertices for the asteroid, accounting for rotation
+                    const asteroidWorldVertices = [];
+                    for (const vertex of asteroid.vertices) {
+                        // Apply rotation if it exists
+                        let rotatedX = vertex.x;
+                        let rotatedY = vertex.y;
+                        
+                        if (asteroid.rotation !== undefined) {
+                            // Apply rotation to the vertex
+                            rotatedX = vertex.x * Math.cos(asteroid.rotation) - vertex.y * Math.sin(asteroid.rotation);
+                            rotatedY = vertex.x * Math.sin(asteroid.rotation) + vertex.y * Math.cos(asteroid.rotation);
+                        }
+                        
+                        // Transform to world coordinates
+                        asteroidWorldVertices.push({
+                            x: asteroid.x + rotatedX,
+                            y: asteroid.y + rotatedY
+                        });
+                    }
+                    
+                    // Check for collision using SAT (Separating Axis Theorem)
+                    if (polygonsIntersect(playerVertices, asteroidWorldVertices)) {
+                        lives--;
+                        if (lives <= 0) {
+                            gameOver = true;
+                        } else {
+                            // Reset player position and make invulnerable
+                            player.x = canvas.width / 2;
+                            player.y = canvas.height / 2;
+                            player.speedX = 0;
+                            player.speedY = 0;
+                            player.speed = 0;
+                            player.invulnerable = true;
+                            player.invulnerableTime = Date.now();
+                        }
+                        break;
+                    }
                 }
             }
 
@@ -366,6 +443,88 @@
                     player.invulnerable = false;
                 }
             }
+        }
+        
+        // Helper function: Check if two polygons intersect (Separating Axis Theorem)
+        function polygonsIntersect(polygon1, polygon2) {
+            // Check if polygon1 has separating axis
+            for (let i = 0; i < polygon1.length; i++) {
+                const a = polygon1[i];
+                const b = polygon1[(i + 1) % polygon1.length];
+                
+                // Get perpendicular axis to check
+                const axisX = -(b.y - a.y);
+                const axisY = b.x - a.x;
+                
+                // Normalize axis
+                const magnitude = Math.sqrt(axisX * axisX + axisY * axisY);
+                const normalizedAxisX = axisX / magnitude;
+                const normalizedAxisY = axisY / magnitude;
+                
+                // Project polygons onto axis
+                let minA = Infinity, maxA = -Infinity;
+                let minB = Infinity, maxB = -Infinity;
+                
+                // Project polygon1
+                for (const v of polygon1) {
+                    const projection = normalizedAxisX * v.x + normalizedAxisY * v.y;
+                    minA = Math.min(minA, projection);
+                    maxA = Math.max(maxA, projection);
+                }
+                
+                // Project polygon2
+                for (const v of polygon2) {
+                    const projection = normalizedAxisX * v.x + normalizedAxisY * v.y;
+                    minB = Math.min(minB, projection);
+                    maxB = Math.max(maxB, projection);
+                }
+                
+                // Check for separation
+                if (maxA < minB || maxB < minA) {
+                    return false; // Found separating axis, no collision
+                }
+            }
+            
+            // Check if polygon2 has separating axis
+            for (let i = 0; i < polygon2.length; i++) {
+                const a = polygon2[i];
+                const b = polygon2[(i + 1) % polygon2.length];
+                
+                // Get perpendicular axis to check
+                const axisX = -(b.y - a.y);
+                const axisY = b.x - a.x;
+                
+                // Normalize axis
+                const magnitude = Math.sqrt(axisX * axisX + axisY * axisY);
+                const normalizedAxisX = axisX / magnitude;
+                const normalizedAxisY = axisY / magnitude;
+                
+                // Project polygons onto axis
+                let minA = Infinity, maxA = -Infinity;
+                let minB = Infinity, maxB = -Infinity;
+                
+                // Project polygon1
+                for (const v of polygon1) {
+                    const projection = normalizedAxisX * v.x + normalizedAxisY * v.y;
+                    minA = Math.min(minA, projection);
+                    maxA = Math.max(maxA, projection);
+                }
+                
+                // Project polygon2
+                for (const v of polygon2) {
+                    const projection = normalizedAxisX * v.x + normalizedAxisY * v.y;
+                    minB = Math.min(minB, projection);
+                    maxB = Math.max(maxB, projection);
+                }
+                
+                // Check for separation
+                if (maxA < minB || maxB < minA) {
+                    return false; // Found separating axis, no collision
+                }
+            }
+            
+            // No separating axis found, polygons intersect
+            return true;
         }
 
         // Draw game state
