@@ -34,14 +34,15 @@
         // 0.8 asteroid splitting
         // 0.9 time-based animation
         // 1.0 rocket sound and cooldown 
+        // 1.1 improved collision and 16:9 resolution
         
-        const version = '1.0';// version to be shown 
+        const version = '1.1';
          const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
 
         // Set canvas size
-        canvas.width = 1000;  // Increased from 800 to 1000 to accommodate legends
-        canvas.height = 600;
+        canvas.width = 1024;  // Changed from 1000 to 1024
+        canvas.height = 576;  // Changed from 600 to 576
 
         // Game objects
         const player = {
@@ -262,19 +263,14 @@
                 for (let j = asteroids.length - 1; j >= 0; j--) {
                     const asteroid = asteroids[j];
                     
-                    // Check if bullet is inside any of the asteroid's vertices
-                    let isColliding = false;
-                    for (const vertex of asteroid.vertices) {
-                        const dx = bullet.x - (asteroid.x + vertex.x);
-                        const dy = bullet.y - (asteroid.y + vertex.y);
-                        const distance = Math.sqrt(dx * dx + dy * dy);
-                        if (distance < 5) { // 5 pixels collision radius for bullets
-                            isColliding = true;
-                            break;
-                        }
-                    }
-
-                    if (isColliding) {
+                    // Calculate distance from bullet to asteroid center
+                    const dx = bullet.x - asteroid.x;
+                    const dy = bullet.y - asteroid.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    
+                    // Check if bullet is inside the asteroid (using simplified circular collision)
+                    // We use asteroid.radius * 0.8 as an approximation of the average asteroid size
+                    if (distance < asteroid.radius * 0.8) {
                         // Remove bullet and asteroid
                         bullets.splice(i, 1);
                         asteroids.splice(j, 1);
@@ -338,19 +334,14 @@
                 // Skip collision check if player is invulnerable
                 if (player.invulnerable) continue;
 
-                // Check if player is inside any of the asteroid's vertices
-                let isColliding = false;
-                for (const vertex of asteroid.vertices) {
-                    const dx = player.x - (asteroid.x + vertex.x);
-                    const dy = player.y - (asteroid.y + vertex.y);
-                    const distance = Math.sqrt(dx * dx + dy * dy);
-                    if (distance < player.radius) {
-                        isColliding = true;
-                        break;
-                    }
-                }
-
-                if (isColliding) {
+                // Calculate distance from player to asteroid center
+                const dx = player.x - asteroid.x;
+                const dy = player.y - asteroid.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                // Check if player is inside the asteroid (using the sum of their radii)
+                // We reduce asteroid size slightly (0.7) to match visual appearance
+                if (distance < player.radius + asteroid.radius * 0.7) {
                     lives--;
                     if (lives <= 0) {
                         gameOver = true;
@@ -398,17 +389,17 @@
             // Draw controls legend
             ctx.font = '12px Arial';
             ctx.textAlign = 'left';
-            ctx.fillText('Controls:', 900, 30);
-            ctx.fillText('< > : Rotate', 900, 60);
-            ctx.fillText('Space : Shoot', 900, 90);
-            ctx.fillText('A : Accelerate', 900, 120);
-            ctx.fillText('S : Decelerate', 900, 150);
-            ctx.fillText('P : Pause', 900, 180);
+            ctx.fillText('Controls:', 924, 30);
+            ctx.fillText('< > : Rotate', 924, 60);
+            ctx.fillText('Space : Shoot', 924, 90);
+            ctx.fillText('A : Accelerate', 924, 120);
+            ctx.fillText('S : Decelerate', 924, 150);
+            ctx.fillText('P : Pause', 924, 180);
 
             // Draw copyright
             ctx.font = '10px Arial';
             ctx.textAlign = 'right';
-            ctx.fillText(`v${version} (c) hot dog studios`, 950, canvas.height - 10);
+            ctx.fillText(`v${version} (c) hot dog studios`, 1014, canvas.height - 10);
 
             if (isPaused) {
                 ctx.fillStyle = '#fff';
