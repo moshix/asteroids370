@@ -35,8 +35,9 @@
         // 0.9 time-based animation
         // 1.0 rocket sound and cooldown 
         // 1.1 improved collision and 16:9 resolution
+        // 1.2 inform player better when a life is lost 
         
-        const version = '1.1';
+        const version = '1.2';
          const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
 
@@ -56,7 +57,9 @@
              acceleration: 0.05,
             maxSpeed: 12,
             invulnerable: false,  // invulnerability state
-            invulnerableTime: 0   // Track invulnerability duration
+            invulnerableTime: 0,   // Track invulnerability duration
+            glowing: false,        // Add glowing state
+            glowTime: 0            // Track glow duration
         };
 
         const asteroids = [];
@@ -70,6 +73,8 @@
         const MAX_BULLETS = 3;  // Maximum number of bullets allowed at once
         let lastBulletTime = 0;  // Add this with other game variables at the top
         let lastTime = 0;  // Track the last time the game loop ran
+        let livesGlowing = false;  // Track if lives count is glowing
+        let livesGlowTime = 0;  // When the lives count started glowing
 
         // Load audio
         const rocketSound = new Audio('rocket.mp3');
@@ -130,7 +135,16 @@
             ctx.lineTo(player.radius, player.radius);
             ctx.lineTo(-player.radius, player.radius);
             ctx.closePath();
-            ctx.strokeStyle = player.invulnerable ? '#888' : '#fff';  // Gray when invulnerable
+            
+            // Set stroke style based on state
+            if (player.glowing) {
+                ctx.strokeStyle = '#fff'; // White glow
+                ctx.lineWidth = 3;        // Thicker line for glow effect
+            } else {
+                ctx.strokeStyle = player.invulnerable ? '#888' : '#fff';  // Gray when invulnerable
+                ctx.lineWidth = 1;        // Normal line width
+            }
+            
             ctx.stroke();
 
             // Draw thrust
@@ -430,6 +444,12 @@
                             player.speed = 0;
                             player.invulnerable = true;
                             player.invulnerableTime = Date.now();
+                            // Add glowing effect
+                            player.glowing = true;
+                            player.glowTime = Date.now();
+                            // Make lives count glow
+                            livesGlowing = true;
+                            livesGlowTime = Date.now();
                         }
                         break;
                     }
@@ -441,6 +461,22 @@
                 const currentTime = Date.now();
                 if (currentTime - player.invulnerableTime > 3000) {  // 3 seconds invulnerability
                     player.invulnerable = false;
+                }
+            }
+            
+            // Update glowing effect
+            if (player.glowing) {
+                const currentTime = Date.now();
+                if (currentTime - player.glowTime > 500) {  // 0.5 seconds glowing
+                    player.glowing = false;
+                }
+            }
+            
+            // Update lives glowing effect
+            if (livesGlowing) {
+                const currentTime = Date.now();
+                if (currentTime - livesGlowTime > 500) {  // 0.5 seconds glowing
+                    livesGlowing = false;
                 }
             }
         }
@@ -543,7 +579,17 @@
             ctx.font = '12px Arial';
             ctx.textAlign = 'left';
             ctx.fillText(`Score: ${score}`, 20, 30);
-            ctx.fillText(`Lives: ${lives}`, 20, 50);
+            
+            // Draw lives with glowing effect if needed
+            if (livesGlowing) {
+                ctx.fillStyle = '#fff'; // Bright white
+                ctx.font = 'bold 16px Arial'; // Bigger and bolder
+                ctx.fillText(`Lives: ${lives}`, 20, 50);
+            } else {
+                ctx.fillStyle = '#fff';
+                ctx.font = '12px Arial';
+                ctx.fillText(`Lives: ${lives}`, 20, 50);
+            }
 
             // Draw controls legend
             ctx.font = '12px Arial';
