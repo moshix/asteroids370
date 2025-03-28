@@ -106,7 +106,7 @@
 
         // Create passover plate-shaped asteroid
         function createPassoverPlateAsteroid() {
-            const radius = 35;  // Increased from 20 to 35 for better visibility
+            const radius = 25;  // Base radius
             let x, y;
             
             // Position asteroid outside the screen
@@ -122,11 +122,11 @@
             const vertices = [];
             const numVertices = 32;  // More vertices for smoother shape
             
-            // Main plate circle with slight wave
+            // Main plate circle
             for (let i = 0; i < numVertices; i++) {
                 const t = (i / numVertices) * Math.PI * 2;
-                const plateX = radius * (1.2 * Math.cos(t) * (1 + 0.08 * Math.sin(t * 4)));
-                const plateY = radius * (1.2 * Math.sin(t) * (1 + 0.08 * Math.cos(t * 4)));
+                const plateX = radius * Math.cos(t);
+                const plateY = radius * Math.sin(t);
                 vertices.push({ x: plateX, y: plateY });
             }
 
@@ -134,8 +134,8 @@
             const innerVertices = [];
             for (let i = 0; i < numVertices; i++) {
                 const t = (i / numVertices) * Math.PI * 2;
-                const innerX = radius * 0.8 * Math.cos(t);
-                const innerY = radius * 0.8 * Math.sin(t);
+                const innerX = radius * 0.6 * Math.cos(t);
+                const innerY = radius * 0.6 * Math.sin(t);
                 innerVertices.push({ x: innerX, y: innerY });
             }
 
@@ -143,10 +143,10 @@
             const dividers = [];
             for (let i = 0; i < 6; i++) {
                 const angle = (i / 6) * Math.PI * 2;
-                const startX = radius * 0.8 * Math.cos(angle);
-                const startY = radius * 0.8 * Math.sin(angle);
-                const endX = radius * 1.15 * Math.cos(angle);
-                const endY = radius * 1.15 * Math.sin(angle);
+                const startX = radius * 0.6 * Math.cos(angle);
+                const startY = radius * 0.6 * Math.sin(angle);
+                const endX = radius * Math.cos(angle);
+                const endY = radius * Math.sin(angle);
                 dividers.push({ startX, startY, endX, endY });
             }
 
@@ -154,9 +154,9 @@
             const itemCircles = [];
             for (let i = 0; i < 6; i++) {
                 const angle = (i / 6) * Math.PI * 2;
-                const itemX = radius * 0.9 * Math.cos(angle);
-                const itemY = radius * 0.9 * Math.sin(angle);
-                itemCircles.push({ x: itemX, y: itemY, radius: radius * 0.15 });
+                const itemX = radius * 0.8 * Math.cos(angle);
+                const itemY = radius * 0.8 * Math.sin(angle);
+                itemCircles.push({ x: itemX, y: itemY, radius: radius * 0.1 });
             }
 
             return {
