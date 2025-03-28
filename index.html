@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Asteroids Game</title>
+    <title>Asteroids!</title>
     <style>
         body {
             margin: 0;
@@ -39,14 +39,15 @@
         // 1.3 rotation control for smooth rotation
         // 1.4 add phosphorescence effect for CRT emulation 
         // 1.5 max speed and other playability settings
+        // 1.6 change canvas size   
         
-        const version = '1.5';
+        const version = '1.6';
          const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
 
          // Set canvas size
-          canvas.width = 1024;   
-            canvas.height = 576;  
+          canvas.width = 1224;   
+            canvas.height = 706;  
 
         // Game objects
         const player = {
@@ -621,17 +622,17 @@
             // Draw controls legend
             ctx.font = '12px Arial';
             ctx.textAlign = 'left';
-            ctx.fillText('Controls:', 924, 30);
-            ctx.fillText('< > : Rotate', 924, 60);
-            ctx.fillText('Space : Shoot', 924, 90);
-            ctx.fillText('A : Accelerate', 924, 120);
-            ctx.fillText('S : Decelerate', 924, 150);
-            ctx.fillText('P : Pause', 924, 180);
+            ctx.fillText('Controls:', 1094, 30);
+            ctx.fillText('< > : Rotate', 1094, 60);
+            ctx.fillText('Space : Shoot', 1094, 90);
+            ctx.fillText('A : Accelerate', 1094, 120);
+            ctx.fillText('S : Decelerate', 1094, 150);
+            ctx.fillText('P : Pause', 1094, 180);
 
             // Draw copyright
-            ctx.font = '10px Arial';
+            ctx.font = '12px Arial';
             ctx.textAlign = 'right';
-            ctx.fillText(`v${version} (c) hot dog studios`, 1014, canvas.height - 10);
+            ctx.fillText(`v${version} (c) hot dog studios`, 1194, canvas.height - 10);
 
             if (isPaused) {
                 ctx.fillStyle = '#fff';
