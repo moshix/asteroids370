@@ -47,8 +47,9 @@
         // 2.0 Secret green CRT mode with any function key
         // 2.1 Easter egg suprise  
         // 2.2 remove seder plate  
+        // 2.3 remove asteroids from center when respawning
 
-        const version = '2.2';
+        const version = '2.3';
          const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
 
@@ -205,18 +206,6 @@
             }
             
             ctx.stroke();
-
-            // Draw thrust with extra glow
-            if (player.thrusting) {
-                ctx.shadowBlur = 12;
-                ctx.shadowColor = colorMode === 1 ? 'rgba(0, 255, 0, 0.7)' : (colorMode === 2 ? 'rgba(255, 165, 0, 0.7)' : 'rgba(255, 100, 0, 0.7)');
-                ctx.beginPath();
-                ctx.moveTo(-player.radius/2, player.radius);
-                ctx.lineTo(0, player.radius + 10);
-                ctx.lineTo(player.radius/2, player.radius);
-                ctx.strokeStyle = colorMode === 1 ? '#0f0' : (colorMode === 2 ? '#ff0' : '#f00');
-                ctx.stroke();
-            }
 
             ctx.restore();
         }
@@ -530,6 +519,22 @@
                         if (lives <= 0) {
                             gameOver = true;
                         } else {
+                            // Clear asteroids from center area before respawning
+                            const centerX = canvas.width / 2;
+                            const centerY = canvas.height / 2;
+                            const safeRadius = 100; // Radius of safe area to clear
+                            
+                            for (let i = asteroids.length - 1; i >= 0; i--) {
+                                const asteroid = asteroids[i];
+                                const dx = asteroid.x - centerX;
+                                const dy = asteroid.y - centerY;
+                                const distance = Math.sqrt(dx * dx + dy * dy);
+                                
+                                if (distance < safeRadius) {
+                                    asteroids.splice(i, 1);
+                                }
+                            }
+                            
                             // Reset player position and make invulnerable
                             player.x = canvas.width / 2;
                             player.y = canvas.height / 2;
