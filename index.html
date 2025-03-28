@@ -47,9 +47,8 @@
         // 2.0 Secret green CRT mode with any function key
         // 2.1 Easter egg suprise  
         // 2.2 remove seder plate  
-        // 2.3 fix trace left by moving objects   
 
-        const version = '2.3';
+        const version = '2.2';
          const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
 
@@ -660,14 +659,9 @@
 
         // Draw game state
         function draw() {
-            // First, completely clear the canvas
-            ctx.fillStyle = 'rgb(0, 0, 0)';
+            // Clear canvas with stronger fade effect for phosphorescence
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.15)';  // Reduced from 0.3 for longer trails
             ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            // Then apply the phosphor effect with a very light fade
-            ctx.globalAlpha = 0.85;  // Adjust this value between 0.8-0.95 for desired trail length
-            ctx.drawImage(canvas, 0, 0);
-            ctx.globalAlpha = 1.0;
 
             // Draw game objects
             asteroids.forEach(drawAsteroid);
