@@ -36,14 +36,16 @@
         // 1.0 rocket sound and cooldown 
         // 1.1 improved collision and 16:9 resolution
         // 1.2 inform player better when a life is lost 
+        // 1.3 rotation control for smooth rotation
+        // 1.4 add phosphorescence effect for CRT emulation 
         
-        const version = '1.2';
+        const version = '1.3';
          const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
 
-        // Set canvas size
-        canvas.width = 1024;   
-        canvas.height = 576;  
+         // Set canvas size
+          canvas.width = 1024;   
+            canvas.height = 576;  
 
         // Game objects
         const player = {
@@ -51,10 +53,14 @@
             y: canvas.height / 2,
             radius: 20,
             angle: 0,
-              rotation: 0,
+            rotation: 0,
+            rotationSpeed: 0,           // Current rotation speed
+            rotationAccel: 0.003,       // Reduced from 0.008 for finer control
+            maxRotationSpeed: 0.15,     // Reduced from 0.3 for more precise aiming
+            rotationFriction: 0.92,     // Slightly increased friction for better stopping
             speed: 0,
             thrusting: false,
-             acceleration: 0.05,
+            acceleration: 0.05,
             maxSpeed: 12,
             invulnerable: false,  // invulnerability state
             invulnerableTime: 0,   // Track invulnerability duration
@@ -76,8 +82,8 @@
         let livesGlowing = false;  // Track if lives count is glowing
         let livesGlowTime = 0;  // When the lives count started glowing
 
-        // Load audio
-        const rocketSound = new Audio('rocket.mp3');
+        // Load audio for rocket sound  
+          const rocketSound = new Audio('rocket.mp3');
         rocketSound.loop = false; // Don't loop the sound
         let lastRocketSoundTime = 0; // Track when we last played the sound
 
@@ -125,9 +131,13 @@
 
         // Draw player
         function drawPlayer() {
-            ctx.save(); // save the context  
+            ctx.save();
             ctx.translate(player.x, player.y);
             ctx.rotate(player.angle);
+            
+            // Add subtle glow effect
+            ctx.shadowBlur = 4;  // Reduced from 8
+            ctx.shadowColor = 'rgba(255, 255, 255, 0.4)';  // Reduced from 0.6
             
             // Draw ship
             ctx.beginPath();
@@ -138,8 +148,9 @@
             
             // Set stroke style based on state
             if (player.glowing) {
-                ctx.strokeStyle = '#fff'; // White glow
-                ctx.lineWidth = 3;        // Thicker line for glow effect
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 3;
+                ctx.shadowBlur = 10;  // Reduced from 15
             } else {
                 ctx.strokeStyle = player.invulnerable ? '#888' : '#fff';  // Gray when invulnerable
                 ctx.lineWidth = 1;        // Normal line width
@@ -147,8 +158,10 @@
             
             ctx.stroke();
 
-            // Draw thrust
+            // Draw thrust with extra glow
             if (player.thrusting) {
+                ctx.shadowBlur = 12;  // Reduced from 15
+                ctx.shadowColor = 'rgba(255, 100, 0, 0.7)';  // Reduced from 0.8
                 ctx.beginPath();
                 ctx.moveTo(-player.radius/2, player.radius);
                 ctx.lineTo(0, player.radius + 10);
@@ -165,10 +178,13 @@
             ctx.save();
             ctx.translate(asteroid.x, asteroid.y);
             
+            // Add subtle glow effect
+            ctx.shadowBlur = 3;  // Reduced from 6
+            ctx.shadowColor = 'rgba(255, 255, 255, 0.3)';  // Reduced from 0.4
+            
             // Apply rotation if it exists
             if (asteroid.rotation !== undefined) {
                 ctx.rotate(asteroid.rotation);
-                // Rotation is now updated in the update function
             }
             
             ctx.beginPath();
@@ -188,10 +204,18 @@
 
         // Draw bullet
         function drawBullet(bullet) {
+            ctx.save();
+            
+            // Add subtle glow effect
+            ctx.shadowBlur = 10;  // Increased from 8
+            ctx.shadowColor = 'rgba(255, 255, 255, 0.7)';  // Increased from 0.6
+            
             ctx.beginPath();
             ctx.arc(bullet.x, bullet.y, 2, 0, Math.PI * 2);
             ctx.fillStyle = '#fff';
             ctx.fill();
+            
+            ctx.restore();
         }
 
         // Update game state
@@ -565,8 +589,8 @@
 
         // Draw game state
         function draw() {
-            // Clear canvas
-            ctx.fillStyle = '#000';
+            // Clear canvas with stronger fade effect for phosphorescence
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.15)';  // Reduced from 0.3 for longer trails
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
             // Draw game objects
@@ -657,11 +681,23 @@
 
             // Handle key inputs for player
             if (keys['ArrowLeft']) {
-                player.angle -= 0.1 * deltaTime * 60; // Scale by deltaTime and normalize to 60fps
+                player.rotationSpeed -= player.rotationAccel * deltaTime * 60;
+                // Limit rotation speed
+                player.rotationSpeed = Math.max(player.rotationSpeed, -player.maxRotationSpeed);
+            } else if (keys['ArrowRight']) {
+                player.rotationSpeed += player.rotationAccel * deltaTime * 60;
+                // Limit rotation speed
+                player.rotationSpeed = Math.min(player.rotationSpeed, player.maxRotationSpeed);
+            } else {
+                // Apply rotation friction when not actively rotating
+                player.rotationSpeed *= Math.pow(player.rotationFriction, deltaTime * 60);
+                // Stop rotation if speed is very small
+                if (Math.abs(player.rotationSpeed) < 0.0001) player.rotationSpeed = 0;
             }
-            if (keys['ArrowRight']) {
-                player.angle += 0.1 * deltaTime * 60;
-            }
+
+            // Apply rotation
+            player.angle += player.rotationSpeed * deltaTime * 60;
+
             if (keys['ArrowUp']) {
                 player.thrusting = true;
             } else {
