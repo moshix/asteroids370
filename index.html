@@ -42,8 +42,9 @@
         // 1.5 max speed and other playability settings
         // 1.6 change canvas size   
         // 1.7 add favicon and increase font sizes a bit for readability
+        // 1.8 limit asteroid spin speed
         
-        const version = '1.7';
+        const version = '1.8';
          const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
 
@@ -383,7 +384,7 @@
                                     speedX: Math.cos(subAngle) * (parentSpeed * speedBoost),
                                     speedY: Math.sin(subAngle) * (parentSpeed * speedBoost),
                                     rotation: Math.random() * Math.PI * 2,
-                                    rotationSpeed: (Math.random() - 0.5) * 0.2,
+                                    rotationSpeed: (Math.random() - 0.5) * 0.1,  // Reduced from 0.2 for slower rotation
                                     vertices: []
                                 };
                                 
