@@ -45,8 +45,9 @@
         // 1.8 limit asteroid spin speed
         // 1.9 Reduce canvas 
         // 2.0 Secret green CRT mode with any function key
-        
-        const version = '2.0';
+        // 2.1 Easter egg suprise  
+
+        const version = '2.1';
          const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
 
@@ -89,6 +90,8 @@
         let livesGlowing = false;  // Track if lives count is glowing
         let livesGlowTime = 0;  // When the lives count started glowing
         let colorMode = 0;  // 0: white, 1: CRT green, 2: CRT amber
+        let gameStartTime = Date.now();  // Track when the game started
+        let easterEggSpawned = false;  // Track if the special egg asteroid has been spawned
 
         // Load audio for rocket sound  
           const rocketSound = new Audio('rocket.mp3');
@@ -98,6 +101,42 @@
         // Create initial asteroids
         for (let i = 0; i < 3; i++) {
             asteroids.push(createAsteroid());
+        }
+
+        // Create egg-shaped asteroid
+        function createEggAsteroid() {
+            const radius = 20;  // Reduced from 30 to 20 (33% smaller)
+            let x, y;
+            
+            // Position asteroid outside the screen
+            if (Math.random() < 0.5) {
+                x = Math.random() < 0.5 ? -radius : canvas.width + radius;
+                y = Math.random() * canvas.height;
+            } else {
+                x = Math.random() * canvas.width;
+                y = Math.random() < 0.5 ? -radius : canvas.height + radius;
+            }
+
+            // Create egg shape using parametric equations
+            const vertices = [];
+            const numVertices = 32;  // More vertices for smoother egg shape
+            for (let i = 0; i < numVertices; i++) {
+                const t = (i / numVertices) * Math.PI * 2;
+                // Egg shape parametric equations
+                const eggX = radius * (1.2 * Math.cos(t) * (1 + 0.2 * Math.sin(t)));
+                const eggY = radius * (1.5 * Math.sin(t) * (1 + 0.2 * Math.cos(t)));
+                vertices.push({ x: eggX, y: eggY });
+            }
+
+            return {
+                x,
+                y,
+                radius,
+                speedX: (Math.random() - 0.5) * 0.8,
+                speedY: (Math.random() - 0.5) * 0.8,
+                vertices,
+                isEgg: true  // Mark this as the special egg asteroid
+            };
         }
 
         // Create asteroid
@@ -204,7 +243,11 @@
                 }
             });
             ctx.closePath();
+            
+            // Use same color scheme as other objects
             ctx.strokeStyle = colorMode === 1 ? '#0f0' : (colorMode === 2 ? '#ff0' : '#fff');
+            ctx.lineWidth = 1;
+            
             ctx.stroke();
 
             ctx.restore();
@@ -230,8 +273,17 @@
         function update(deltaTime) {
             if (gameOver || isPaused) return;  //  pause check
 
-            // more asterroids over time, not by frame!
+            // Check for special egg asteroid spawn during March and April
             const currentTime = Date.now();
+            const currentMonth = new Date().getMonth() + 1;  // getMonth() returns 0-11
+            const gameTimeElapsed = currentTime - gameStartTime;
+
+            if (!easterEggSpawned && gameTimeElapsed > 7000 && (currentMonth === 3 || currentMonth === 4)) {
+                asteroids.push(createEggAsteroid());
+                easterEggSpawned = true;
+            }
+
+            // more asterroids over time, not by frame!
             if (currentTime - lastAsteroidSpawn > ASTEROID_SPAWN_INTERVAL) {
                 asteroids.push(createAsteroid());
                 lastAsteroidSpawn = currentTime;
