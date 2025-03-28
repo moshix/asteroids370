@@ -2,6 +2,7 @@
 <html>
 <head>
     <title>Asteroids!</title>
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
     <style>
         body {
             margin: 0;
@@ -40,8 +41,9 @@
         // 1.4 add phosphorescence effect for CRT emulation 
         // 1.5 max speed and other playability settings
         // 1.6 change canvas size   
+        // 1.7 add favicon and increase font sizes a bit for readability
         
-        const version = '1.6';
+        const version = '1.7';
          const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
 
@@ -604,7 +606,7 @@
 
             // Draw score and lives
             ctx.fillStyle = '#fff';
-            ctx.font = '12px Arial';
+            ctx.font = '13px Arial';
             ctx.textAlign = 'left';
             ctx.fillText(`Score: ${score}`, 20, 30);
             
@@ -615,12 +617,12 @@
                 ctx.fillText(`Lives: ${lives}`, 20, 50);
             } else {
                 ctx.fillStyle = '#fff';
-                ctx.font = '12px Arial';
+                ctx.font = '13px Arial';
                 ctx.fillText(`Lives: ${lives}`, 20, 50);
             }
 
             // Draw controls legend
-            ctx.font = '12px Arial';
+            ctx.font = '13px Arial';
             ctx.textAlign = 'left';
             ctx.fillText('Controls:', 1094, 30);
             ctx.fillText('< > : Rotate', 1094, 60);
@@ -632,7 +634,7 @@
             // Draw copyright
             ctx.font = '12px Arial';
             ctx.textAlign = 'right';
-            ctx.fillText(`v${version} (c) hot dog studios`, 1194, canvas.height - 10);
+            ctx.fillText(`v${version} by hot dog studios`, 1194, canvas.height - 10);
 
             if (isPaused) {
                 ctx.fillStyle = '#fff';

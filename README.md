@@ -13,10 +13,14 @@ A modern take on the classic Asteroids arcade game, built with HTML5 Canvas and 
 - Dynamic asteroid splitting
 - Smooth controls and physics
 - Responsive design
+- Phosphorescent glow effects for all game objects
+- Enhanced visual feedback for collisions and thrust
+- Optimized movement and rotation controls
+- 16:9 widescreen display
 
 ## Controls
 
-- `<` `>` : Rotate ship
+- `<` `>` : Rotate ship (smooth rotation with momentum)
 - `Space` : Shoot
 - `A` : Accelerate
 - `S` : Decelerate
@@ -36,6 +40,9 @@ A modern take on the classic Asteroids arcade game, built with HTML5 Canvas and 
 - Uses HTML5 Canvas for rendering
 - No external dependencies
 - Responsive design that works on modern browsers
+- 1204x706 canvas resolution
+- Smooth animation with delta time
+- Advanced collision detection using SAT algorithm
 
 ## Development
 
@@ -43,6 +50,12 @@ The game is built using:
 - HTML5 Canvas for graphics
 - JavaScript for game logic
 - CSS for basic styling
+
+## Version History
+
+- v1.4: Added phosphorescent glow effects
+- v1.5: Adjusted max speed and playability settings
+- v1.6: Updated canvas size to 1204x706
 
 ## License
 
