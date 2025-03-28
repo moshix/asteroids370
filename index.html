@@ -92,6 +92,7 @@
         let colorMode = 0;  // 0: white, 1: CRT green, 2: CRT amber
         let gameStartTime = Date.now();  // Track when the game started
         let easterEggSpawned = false;  // Track if the special egg asteroid has been spawned
+        let passoverPlateSpawned = false;  // Track if the special passover plate asteroid has been spawned
 
         // Load audio for rocket sound  
           const rocketSound = new Audio('rocket.mp3');
@@ -101,6 +102,75 @@
         // Create initial asteroids
         for (let i = 0; i < 3; i++) {
             asteroids.push(createAsteroid());
+        }
+
+        // Create passover plate-shaped asteroid
+        function createPassoverPlateAsteroid() {
+            const radius = 35;  // Increased from 20 to 35 for better visibility
+            let x, y;
+            
+            // Position asteroid outside the screen
+            if (Math.random() < 0.5) {
+                x = Math.random() < 0.5 ? -radius : canvas.width + radius;
+                y = Math.random() * canvas.height;
+            } else {
+                x = Math.random() * canvas.width;
+                y = Math.random() < 0.5 ? -radius : canvas.height + radius;
+            }
+
+            // Create Seder plate shape with sections
+            const vertices = [];
+            const numVertices = 32;  // More vertices for smoother shape
+            
+            // Main plate circle with slight wave
+            for (let i = 0; i < numVertices; i++) {
+                const t = (i / numVertices) * Math.PI * 2;
+                const plateX = radius * (1.2 * Math.cos(t) * (1 + 0.08 * Math.sin(t * 4)));
+                const plateY = radius * (1.2 * Math.sin(t) * (1 + 0.08 * Math.cos(t * 4)));
+                vertices.push({ x: plateX, y: plateY });
+            }
+
+            // Add inner circle for the plate's center
+            const innerVertices = [];
+            for (let i = 0; i < numVertices; i++) {
+                const t = (i / numVertices) * Math.PI * 2;
+                const innerX = radius * 0.8 * Math.cos(t);
+                const innerY = radius * 0.8 * Math.sin(t);
+                innerVertices.push({ x: innerX, y: innerY });
+            }
+
+            // Add section dividers (6 sections for the 6 traditional items)
+            const dividers = [];
+            for (let i = 0; i < 6; i++) {
+                const angle = (i / 6) * Math.PI * 2;
+                const startX = radius * 0.8 * Math.cos(angle);
+                const startY = radius * 0.8 * Math.sin(angle);
+                const endX = radius * 1.15 * Math.cos(angle);
+                const endY = radius * 1.15 * Math.sin(angle);
+                dividers.push({ startX, startY, endX, endY });
+            }
+
+            // Add small circles for the traditional items
+            const itemCircles = [];
+            for (let i = 0; i < 6; i++) {
+                const angle = (i / 6) * Math.PI * 2;
+                const itemX = radius * 0.9 * Math.cos(angle);
+                const itemY = radius * 0.9 * Math.sin(angle);
+                itemCircles.push({ x: itemX, y: itemY, radius: radius * 0.15 });
+            }
+
+            return {
+                x,
+                y,
+                radius,
+                speedX: (Math.random() - 0.5) * 0.8,
+                speedY: (Math.random() - 0.5) * 0.8,
+                vertices,
+                innerVertices,
+                dividers,
+                itemCircles,
+                isPassoverPlate: true  // Mark this as the special passover plate asteroid
+            };
         }
 
         // Create egg-shaped asteroid
@@ -234,6 +304,7 @@
                 ctx.rotate(asteroid.rotation);
             }
             
+            // Draw main plate shape
             ctx.beginPath();
             asteroid.vertices.forEach((vertex, i) => {
                 if (i === 0) {
@@ -247,8 +318,59 @@
             // Use same color scheme as other objects
             ctx.strokeStyle = colorMode === 1 ? '#0f0' : (colorMode === 2 ? '#ff0' : '#fff');
             ctx.lineWidth = 1;
-            
             ctx.stroke();
+
+            // Draw inner circle and dividers for Seder plate
+            if (asteroid.isPassoverPlate) {
+                // Draw inner circle
+                ctx.beginPath();
+                asteroid.innerVertices.forEach((vertex, i) => {
+                    if (i === 0) {
+                        ctx.moveTo(vertex.x, vertex.y);
+                    } else {
+                        ctx.lineTo(vertex.x, vertex.y);
+                    }
+                });
+                ctx.closePath();
+                ctx.stroke();
+
+                // Draw section dividers
+                asteroid.dividers.forEach(divider => {
+                    ctx.beginPath();
+                    ctx.moveTo(divider.startX, divider.startY);
+                    ctx.lineTo(divider.endX, divider.endY);
+                    ctx.stroke();
+                });
+
+                // Draw small circles for traditional items
+                asteroid.itemCircles.forEach(circle => {
+                    ctx.beginPath();
+                    ctx.arc(circle.x, circle.y, circle.radius, 0, Math.PI * 2);
+                    ctx.stroke();
+                });
+
+                // Draw Star of David in the center
+                const starRadius = asteroid.radius * 0.25;  // Size of the star
+                const centerX = 0;
+                const centerY = 0;
+                
+                // Draw the two triangles that make up the Star of David
+                for (let i = 0; i < 2; i++) {
+                    ctx.beginPath();
+                    for (let j = 0; j < 3; j++) {
+                        const angle = (i * Math.PI / 3) + (j * 2 * Math.PI / 3);
+                        const x = centerX + starRadius * Math.cos(angle);
+                        const y = centerY + starRadius * Math.sin(angle);
+                        if (j === 0) {
+                            ctx.moveTo(x, y);
+                        } else {
+                            ctx.lineTo(x, y);
+                        }
+                    }
+                    ctx.closePath();
+                    ctx.stroke();
+                }
+            }
 
             ctx.restore();
         }
@@ -273,7 +395,7 @@
         function update(deltaTime) {
             if (gameOver || isPaused) return;  //  pause check
 
-            // Check for special egg asteroid spawn during March and April
+            // Check for special asteroids spawn during March and April
             const currentTime = Date.now();
             const currentMonth = new Date().getMonth() + 1;  // getMonth() returns 0-11
             const gameTimeElapsed = currentTime - gameStartTime;
@@ -281,6 +403,11 @@
             if (!easterEggSpawned && gameTimeElapsed > 7000 && (currentMonth === 3 || currentMonth === 4)) {
                 asteroids.push(createEggAsteroid());
                 easterEggSpawned = true;
+            }
+
+            if (!passoverPlateSpawned && gameTimeElapsed > 7000 && (currentMonth === 3 || currentMonth === 4)) {
+                asteroids.push(createPassoverPlateAsteroid());
+                passoverPlateSpawned = true;
             }
 
             // more asterroids over time, not by frame!
@@ -413,6 +540,14 @@
                             const currentMonth = new Date().getMonth() + 1;
                             if (currentMonth === 3 || currentMonth === 4) {
                                 asteroids.push(createEggAsteroid());
+                            }
+                        }
+
+                        // If the destroyed asteroid was the passover plate, spawn a new one
+                        if (asteroid.isPassoverPlate) {
+                            const currentMonth = new Date().getMonth() + 1;
+                            if (currentMonth === 3 || currentMonth === 4) {
+                                asteroids.push(createPassoverPlateAsteroid());
                             }
                         }
 
