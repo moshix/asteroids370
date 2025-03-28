@@ -1,4 +1,4 @@
-# Asteroids Game
+# Asteroids!
 
 A modern take on the classic Asteroids arcade game, built with HTML5 Canvas and JavaScript.
 
@@ -51,12 +51,7 @@ The game is built using:
 - JavaScript for game logic
 - CSS for basic styling
 
-## Version History
-
-- v1.4: Added phosphorescent glow effects
-- v1.5: Adjusted max speed and playability settings
-- v1.6: Updated canvas size to 1204x706
 
 ## License
 
-(c) hot dog studios 
+(c) moshix for hot dog studios 
