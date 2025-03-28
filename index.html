@@ -46,8 +46,9 @@
         // 1.9 Reduce canvas 
         // 2.0 Secret green CRT mode with any function key
         // 2.1 Easter egg suprise  
+        // 2.2 remove seder plate  
 
-        const version = '2.1';
+        const version = '2.2';
          const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
 
@@ -92,7 +93,6 @@
         let colorMode = 0;  // 0: white, 1: CRT green, 2: CRT amber
         let gameStartTime = Date.now();  // Track when the game started
         let easterEggSpawned = false;  // Track if the special egg asteroid has been spawned
-        let passoverPlateSpawned = false;  // Track if the special passover plate asteroid has been spawned
 
         // Load audio for rocket sound  
           const rocketSound = new Audio('rocket.mp3');
@@ -102,75 +102,6 @@
         // Create initial asteroids
         for (let i = 0; i < 3; i++) {
             asteroids.push(createAsteroid());
-        }
-
-        // Create passover plate-shaped asteroid
-        function createPassoverPlateAsteroid() {
-            const radius = 25;  // Base radius
-            let x, y;
-            
-            // Position asteroid outside the screen
-            if (Math.random() < 0.5) {
-                x = Math.random() < 0.5 ? -radius : canvas.width + radius;
-                y = Math.random() * canvas.height;
-            } else {
-                x = Math.random() * canvas.width;
-                y = Math.random() < 0.5 ? -radius : canvas.height + radius;
-            }
-
-            // Create Seder plate shape with sections
-            const vertices = [];
-            const numVertices = 32;  // More vertices for smoother shape
-            
-            // Main plate circle
-            for (let i = 0; i < numVertices; i++) {
-                const t = (i / numVertices) * Math.PI * 2;
-                const plateX = radius * Math.cos(t);
-                const plateY = radius * Math.sin(t);
-                vertices.push({ x: plateX, y: plateY });
-            }
-
-            // Add inner circle for the plate's center
-            const innerVertices = [];
-            for (let i = 0; i < numVertices; i++) {
-                const t = (i / numVertices) * Math.PI * 2;
-                const innerX = radius * 0.6 * Math.cos(t);
-                const innerY = radius * 0.6 * Math.sin(t);
-                innerVertices.push({ x: innerX, y: innerY });
-            }
-
-            // Add section dividers (6 sections for the 6 traditional items)
-            const dividers = [];
-            for (let i = 0; i < 6; i++) {
-                const angle = (i / 6) * Math.PI * 2;
-                const startX = radius * 0.6 * Math.cos(angle);
-                const startY = radius * 0.6 * Math.sin(angle);
-                const endX = radius * Math.cos(angle);
-                const endY = radius * Math.sin(angle);
-                dividers.push({ startX, startY, endX, endY });
-            }
-
-            // Add small circles for the traditional items
-            const itemCircles = [];
-            for (let i = 0; i < 6; i++) {
-                const angle = (i / 6) * Math.PI * 2;
-                const itemX = radius * 0.8 * Math.cos(angle);
-                const itemY = radius * 0.8 * Math.sin(angle);
-                itemCircles.push({ x: itemX, y: itemY, radius: radius * 0.1 });
-            }
-
-            return {
-                x,
-                y,
-                radius,
-                speedX: (Math.random() - 0.5) * 0.8,
-                speedY: (Math.random() - 0.5) * 0.8,
-                vertices,
-                innerVertices,
-                dividers,
-                itemCircles,
-                isPassoverPlate: true  // Mark this as the special passover plate asteroid
-            };
         }
 
         // Create egg-shaped asteroid
@@ -304,7 +235,7 @@
                 ctx.rotate(asteroid.rotation);
             }
             
-            // Draw main plate shape
+            // Draw main shape
             ctx.beginPath();
             asteroid.vertices.forEach((vertex, i) => {
                 if (i === 0) {
@@ -319,58 +250,6 @@
             ctx.strokeStyle = colorMode === 1 ? '#0f0' : (colorMode === 2 ? '#ff0' : '#fff');
             ctx.lineWidth = 1;
             ctx.stroke();
-
-            // Draw inner circle and dividers for Seder plate
-            if (asteroid.isPassoverPlate) {
-                // Draw inner circle
-                ctx.beginPath();
-                asteroid.innerVertices.forEach((vertex, i) => {
-                    if (i === 0) {
-                        ctx.moveTo(vertex.x, vertex.y);
-                    } else {
-                        ctx.lineTo(vertex.x, vertex.y);
-                    }
-                });
-                ctx.closePath();
-                ctx.stroke();
-
-                // Draw section dividers
-                asteroid.dividers.forEach(divider => {
-                    ctx.beginPath();
-                    ctx.moveTo(divider.startX, divider.startY);
-                    ctx.lineTo(divider.endX, divider.endY);
-                    ctx.stroke();
-                });
-
-                // Draw small circles for traditional items
-                asteroid.itemCircles.forEach(circle => {
-                    ctx.beginPath();
-                    ctx.arc(circle.x, circle.y, circle.radius, 0, Math.PI * 2);
-                    ctx.stroke();
-                });
-
-                // Draw Star of David in the center
-                const starRadius = asteroid.radius * 0.25;  // Size of the star
-                const centerX = 0;
-                const centerY = 0;
-                
-                // Draw the two triangles that make up the Star of David
-                for (let i = 0; i < 2; i++) {
-                    ctx.beginPath();
-                    for (let j = 0; j < 3; j++) {
-                        const angle = (i * Math.PI / 3) + (j * 2 * Math.PI / 3);
-                        const x = centerX + starRadius * Math.cos(angle);
-                        const y = centerY + starRadius * Math.sin(angle);
-                        if (j === 0) {
-                            ctx.moveTo(x, y);
-                        } else {
-                            ctx.lineTo(x, y);
-                        }
-                    }
-                    ctx.closePath();
-                    ctx.stroke();
-                }
-            }
 
             ctx.restore();
         }
@@ -403,11 +282,6 @@
             if (!easterEggSpawned && gameTimeElapsed > 7000 && (currentMonth === 3 || currentMonth === 4)) {
                 asteroids.push(createEggAsteroid());
                 easterEggSpawned = true;
-            }
-
-            if (!passoverPlateSpawned && gameTimeElapsed > 7000 && (currentMonth === 3 || currentMonth === 4)) {
-                asteroids.push(createPassoverPlateAsteroid());
-                passoverPlateSpawned = true;
             }
 
             // more asterroids over time, not by frame!
@@ -509,15 +383,14 @@
                     // Apply inverse rotation if asteroid has rotation
                     if (asteroid.rotation !== undefined) {
                         const cos = Math.cos(-asteroid.rotation);
-                           const sin = Math.sin(-asteroid.rotation);
+                        const sin = Math.sin(-asteroid.rotation);
                         const rotatedX = localBulletX * cos - localBulletY * sin;
                         const rotatedY = localBulletX * sin + localBulletY * cos;
-                          localBulletX = rotatedX;
+                        localBulletX = rotatedX;
                         localBulletY = rotatedY;
                     }
                     
                     // Ray-casting algorithm to determine if point is inside polygon
-                    // from Amazing Algorithms for Game Programming book
                     for (let k = 0, l = asteroid.vertices.length; k < l; k++) {
                         const v1 = asteroid.vertices[k];
                         const v2 = asteroid.vertices[(k + 1) % l];
@@ -540,14 +413,6 @@
                             const currentMonth = new Date().getMonth() + 1;
                             if (currentMonth === 3 || currentMonth === 4) {
                                 asteroids.push(createEggAsteroid());
-                            }
-                        }
-
-                        // If the destroyed asteroid was the passover plate, spawn a new one
-                        if (asteroid.isPassoverPlate) {
-                            const currentMonth = new Date().getMonth() + 1;
-                            if (currentMonth === 3 || currentMonth === 4) {
-                                asteroids.push(createPassoverPlateAsteroid());
                             }
                         }
 
