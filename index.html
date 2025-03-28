@@ -43,9 +43,10 @@
         // 1.6 change canvas size   
         // 1.7 add favicon and increase font sizes a bit for readability
         // 1.8 limit asteroid spin speed
-        // 1.9 Reduce canvas  
+        // 1.9 Reduce canvas 
+        // 2.0 Secret green CRT mode with any function key
         
-        const version = '1.9';
+        const version = '2.0';
          const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
 
@@ -87,6 +88,7 @@
         let lastTime = 0;  // Track the last time the game loop ran
         let livesGlowing = false;  // Track if lives count is glowing
         let livesGlowTime = 0;  // When the lives count started glowing
+        let isCRTMode = false;  // Track if we're in CRT green mode
 
         // Load audio for rocket sound  
           const rocketSound = new Audio('rocket.mp3');
@@ -143,7 +145,7 @@
             
             // Add subtle glow effect
             ctx.shadowBlur = 4;  
-            ctx.shadowColor = 'rgba(255, 255, 255, 0.1)'; 
+            ctx.shadowColor = isCRTMode ? 'rgba(0, 255, 0, 0.1)' : 'rgba(255, 255, 255, 0.1)';
             
             // Draw ship
             ctx.beginPath();
@@ -154,25 +156,25 @@
             
             // Set stroke style based on state
             if (player.glowing) {
-                ctx.strokeStyle = '#fff';
+                ctx.strokeStyle = isCRTMode ? '#0f0' : '#fff';
                 ctx.lineWidth = 3;
-                ctx.shadowBlur = 10;  // Reduced from 15
+                ctx.shadowBlur = 10;
             } else {
-                ctx.strokeStyle = player.invulnerable ? '#888' : '#fff';  // Gray when invulnerable
-                ctx.lineWidth = 1;        // Normal line width
+                ctx.strokeStyle = player.invulnerable ? '#888' : (isCRTMode ? '#0f0' : '#fff');
+                ctx.lineWidth = 1;
             }
             
             ctx.stroke();
 
             // Draw thrust with extra glow
             if (player.thrusting) {
-                ctx.shadowBlur = 12;  // Reduced from 15
-                ctx.shadowColor = 'rgba(255, 100, 0, 0.7)';  // Reduced from 0.8
+                ctx.shadowBlur = 12;
+                ctx.shadowColor = isCRTMode ? 'rgba(0, 255, 0, 0.7)' : 'rgba(255, 100, 0, 0.7)';
                 ctx.beginPath();
                 ctx.moveTo(-player.radius/2, player.radius);
                 ctx.lineTo(0, player.radius + 10);
                 ctx.lineTo(player.radius/2, player.radius);
-                ctx.strokeStyle = '#f00';
+                ctx.strokeStyle = isCRTMode ? '#0f0' : '#f00';
                 ctx.stroke();
             }
 
@@ -186,7 +188,7 @@
             
             // Add subtle glow effect
             ctx.shadowBlur = 4;  
-            ctx.shadowColor = 'rgba(255, 255, 255, 0.3)';  
+            ctx.shadowColor = isCRTMode ? 'rgba(0, 255, 0, 0.3)' : 'rgba(255, 255, 255, 0.3)';
             
             // Apply rotation if it exists
             if (asteroid.rotation !== undefined) {
@@ -202,7 +204,7 @@
                 }
             });
             ctx.closePath();
-            ctx.strokeStyle = '#fff';
+            ctx.strokeStyle = isCRTMode ? '#0f0' : '#fff';
             ctx.stroke();
 
             ctx.restore();
@@ -213,12 +215,12 @@
             ctx.save();
             
             // Add subtle glow effect
-            ctx.shadowBlur = 10;  // Increased from 8
-            ctx.shadowColor = 'rgba(255, 255, 255, 0.7)';  // Increased from 0.6
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = isCRTMode ? 'rgba(0, 255, 0, 0.7)' : 'rgba(255, 255, 255, 0.7)';
             
             ctx.beginPath();
             ctx.arc(bullet.x, bullet.y, 2, 0, Math.PI * 2);
-            ctx.fillStyle = '#fff';
+            ctx.fillStyle = isCRTMode ? '#0f0' : '#fff';
             ctx.fill();
             
             ctx.restore();
@@ -607,18 +609,18 @@
             drawPlayer();
 
             // Draw score and lives
-            ctx.fillStyle = '#fff';
+            ctx.fillStyle = isCRTMode ? '#0f0' : '#fff';
             ctx.font = '13px Arial';
             ctx.textAlign = 'left';
             ctx.fillText(`Score: ${score}`, 20, 30);
             
             // Draw lives with glowing effect if needed
             if (livesGlowing) {
-                ctx.fillStyle = '#fff'; // Bright white
+                ctx.fillStyle = isCRTMode ? '#0f0' : '#fff'; // Bright green/white
                 ctx.font = 'bold 16px Arial'; // Bigger and bolder
                 ctx.fillText(`Lives: ${lives}`, 20, 50);
             } else {
-                ctx.fillStyle = '#fff';
+                ctx.fillStyle = isCRTMode ? '#0f0' : '#fff';
                 ctx.font = '13px Arial';
                 ctx.fillText(`Lives: ${lives}`, 20, 50);
             }
@@ -632,6 +634,7 @@
             ctx.fillText('A : Accelerate', 1054, 120);
             ctx.fillText('S : Decelerate', 1054, 150);
             ctx.fillText('P : Pause', 1054, 180);
+            //ctx.fillText('F1 : Toggle CRT Mode', 1054, 210);
 
             // Draw copyright
             ctx.font = '12px Arial';
@@ -639,14 +642,14 @@
             ctx.fillText(`v${version} by hot dog studios`, 1134, canvas.height - 10);
 
             if (isPaused) {
-                ctx.fillStyle = '#fff';
+                ctx.fillStyle = isCRTMode ? '#0f0' : '#fff';
                 ctx.font = '48px Arial';
                 ctx.textAlign = 'center';
                 ctx.fillText('PAUSED', canvas.width/2, canvas.height/2);
             }
 
             if (gameOver) {
-                ctx.fillStyle = '#fff';
+                ctx.fillStyle = isCRTMode ? '#0f0' : '#fff';
                 ctx.font = '48px Arial';
                 ctx.textAlign = 'center';
                 ctx.fillText('GAME OVER', canvas.width/2, canvas.height/2);
@@ -679,6 +682,11 @@
             // Handle pause key press only on keydown, not continuously
             if ((e.key === 'p' || e.key === 'P') && !e.repeat) {
                 isPaused = !isPaused;
+            }
+            
+            // Handle any function key for color mode toggle
+            if (e.key.match(/^F\d+$/) && !e.repeat) {
+                isCRTMode = !isCRTMode;
             }
         });
         document.addEventListener('keyup', e => keys[e.key] = false);
