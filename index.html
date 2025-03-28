@@ -43,13 +43,14 @@
         // 1.6 change canvas size   
         // 1.7 add favicon and increase font sizes a bit for readability
         // 1.8 limit asteroid spin speed
+        // 1.9 Reduce canvas  
         
-        const version = '1.8';
+        const version = '1.9';
          const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
 
          // Set canvas size
-          canvas.width = 1204;   
+          canvas.width = 1174;   
             canvas.height = 706;  
 
         // Game objects
@@ -625,17 +626,17 @@
             // Draw controls legend
             ctx.font = '13px Arial';
             ctx.textAlign = 'left';
-            ctx.fillText('Controls:', 1094, 30);
-            ctx.fillText('< > : Rotate', 1094, 60);
-            ctx.fillText('Space : Shoot', 1094, 90);
-            ctx.fillText('A : Accelerate', 1094, 120);
-            ctx.fillText('S : Decelerate', 1094, 150);
-            ctx.fillText('P : Pause', 1094, 180);
+            ctx.fillText('Controls:', 1054, 30);
+            ctx.fillText('< > : Rotate', 1054, 60);
+            ctx.fillText('Space : Shoot', 1054, 90);
+            ctx.fillText('A : Accelerate', 1054, 120);
+            ctx.fillText('S : Decelerate', 1054, 150);
+            ctx.fillText('P : Pause', 1054, 180);
 
             // Draw copyright
             ctx.font = '12px Arial';
             ctx.textAlign = 'right';
-            ctx.fillText(`v${version} by hot dog studios`, 1194, canvas.height - 10);
+            ctx.fillText(`v${version} by hot dog studios`, 1134, canvas.height - 10);
 
             if (isPaused) {
                 ctx.fillStyle = '#fff';
